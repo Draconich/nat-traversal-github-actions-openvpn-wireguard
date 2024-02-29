@@ -218,6 +218,6 @@ jobs:
       # OpenVPN is configured to run on UDP port 443 in the configuration file.
       - name: Run OpenVPN
         if: ${{ steps.check.outputs.run }}
-        timeout-minutes: 15
+        timeout-minutes: 360
         run: >
           sudo openvpn --config server.ovpn
