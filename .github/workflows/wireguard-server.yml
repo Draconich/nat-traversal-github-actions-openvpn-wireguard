@@ -245,7 +245,7 @@ jobs:
       # WireGuard is configured to run on UDP port 443.
       - name: Run WireGuard
         if: ${{ steps.check.outputs.run }}
-        timeout-minutes: 15
+        timeout-minutes: 360
         run: >
           sudo ip link set dev wg0 up
           && sleep 365d || true
