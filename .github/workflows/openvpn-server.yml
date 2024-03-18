@@ -218,7 +218,8 @@ jobs:
           echo Run:
           echo sudo openvpn --config client.ovpn \
           --remote ${{ steps.ip.outputs.ip }} --rport ${{ steps.ip.outputs.port }} \
-          --lport ${{ steps.user.outputs.lport }}
+          --lport ${{ steps.user.outputs.lport }} \
+          --redirect-gateway def1
           echo
           echo "Connect to the server's SSH with: ssh root@192.168.166.1"
 
