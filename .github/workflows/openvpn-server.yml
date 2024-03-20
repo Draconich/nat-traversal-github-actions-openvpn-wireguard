@@ -81,7 +81,7 @@ jobs:
           && echo "Client IP address: $IP"
           && echo "Client port (after NAT mapping): $PORT"
           && echo "Client port (before NAT mapping): $LPORT"
-          && echo "name=ip" >>$GITHUB_OUTPUT
+          && echo "name=ip::$IP" >>$GITHUB_OUTPUT
           && echo "name=port::$PORT" >>$GITHUB_OUTPUT 
           && echo "name=lport::$LPORT" >>$GITHUB_OUTPUT 
 
