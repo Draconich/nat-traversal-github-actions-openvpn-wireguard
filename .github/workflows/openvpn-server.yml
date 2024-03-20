@@ -61,14 +61,14 @@ jobs:
       - name: Detect IP address and UDP port mapping
         if: ${{ steps.check.outputs.run }}
         id: ip
-        run: >
-         sudo stun -v stun.l.google.com:19302 -p 443 1 2>&1 | awk '/MappedAddress/ {
-         split($0, aport, /:/); split(aport[1], aip, / /); port=aport[2]; ip=aip[3];
-         print "Server IP address:", ip; print "ip=ip" >> "$GITHUB_OUTPUT";
-         print "Server port map for source port 443:", port; print "port=port" >> "$GITHUB_OUTPUT";
-         exit}'
-
-         
+        run: |
+          output=$(sudo stun -v stun.l.google.com:19302 -p 443 1 2>&1)
+          ip=$(echo "$output" | awk -F'[ /]' '/MappedAddress/ {print $6}')
+          port=$(echo "$output" | awk -F'[:/]' '/MappedAddress/ {print $5}')
+          echo "Server IP address: $ip"
+          echo "ip=$ip" >> "$GITHUB_OUTPUT"
+          echo "Server port map for source port 443: $port"
+          echo "port=$port" >> "$GITHUB_OUTPUT"
 
       
       - name: Punch NAT towards client IP address for 10 minutes (in background)
