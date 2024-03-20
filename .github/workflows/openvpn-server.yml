@@ -37,9 +37,11 @@ jobs:
       # specific commit messages.
       - name: 'Check if commit message starts with "OVPN: "'
         id: check
-        run: >
-          [[ "$(git log --pretty='%s' -n1)" =~ "OVPN: " ]]
-          && echo "name=run::true" >>$GITHUB_OUTPUT  || true
+        run: |
+         if [[ "$(git log --pretty='%s' -n1)" =~ "OVPN: " ]]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          fi
+        
 
       - name: Enable IP forwarding
         if: ${{ steps.check.outputs.run }}
@@ -72,18 +74,22 @@ jobs:
       - name: Get client IP address and optional port from commit title
         if: ${{ steps.check.outputs.run }}
         id: user
-        run: >
+        run: |
           IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
-          && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
-          && LPORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $4}')"
-          && { [[ ! "$PORT" ]] && PORT=$(( $RANDOM + 32767 )) || true; }
-          && { [[ ! "$LPORT" ]] && LPORT=$PORT || true; }
-          && echo "Client IP address: $IP"
-          && echo "Client port (after NAT mapping): $PORT"
-          && echo "Client port (before NAT mapping): $LPORT"
-          && echo "name=ip::$IP" >>$GITHUB_OUTPUT
-          && echo "name=port::$PORT" >>$GITHUB_OUTPUT 
-          && echo "name=lport::$LPORT" >>$GITHUB_OUTPUT 
+          PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
+          LPORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $4}')"
+          if [[ -z "$PORT" ]]; then
+            PORT=$(( $RANDOM + 32767 ))
+          fi
+          if [[ -z "$LPORT" ]]; then
+            LPORT=$PORT
+          fi
+          echo "Client IP address: $IP"
+          echo "Client port (after NAT mapping): $PORT"
+          echo "Client port (before NAT mapping): $LPORT"
+          echo "ip=$IP" >> $GITHUB_OUTPUT
+          echo "port=$PORT" >> $GITHUB_OUTPUT
+          echo "lport=$LPORT" >> $GITHUB_OUTPUT
 
       - name: Install packages and configure system
         if: ${{ steps.check.outputs.run }}
@@ -153,11 +159,13 @@ jobs:
       - name: Detect IP address and UDP port mapping
         if: ${{ steps.check.outputs.run }}
         id: ip
-        run: >
+        run: |
           sudo stun -v stun.l.google.com:19302 -p 443 1 2>&1 | awk '/MappedAddress/ {
           split($0, aport, /:/); split(aport[1], aip, / /); port=aport[2]; ip=aip[3];
-          print "Server IP address:", ip,  "name=ip::"ip" >>$GITHUB_OUTPUT;
-          print "Server port map for source port 443:", port, "name=port::"port" >>$GITHUB_OUTPUT
+          print "Server IP address:", ip;
+          print "Server port map for source port 443:", port;
+          print "ip="ip >> $GITHUB_OUTPUT;
+          print "port="port >> $GITHUB_OUTPUT;
           exit}'
 
       # Punch NAT by sending empty UDP packets to the client's IP address and mapped port
