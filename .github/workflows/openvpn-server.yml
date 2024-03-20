@@ -81,13 +81,14 @@ jobs:
       - name: Print OpenVPN connection string
         if: ${{ steps.check.outputs.run }}
         run: |
-          echo Run:
-          echo sudo openvpn --config client.ovpn \
-          --remote ${{ steps.ip.outputs.ip }} --rport ${{ steps.ip.outputs.port }} \
-          --lport ${{ steps.user.outputs.lport }} \
-          --redirect-gateway def1
-          echo
-          echo "Connect to the server's SSH with: ssh root@192.168.166.1"
+             echo "Run:"
+             echo "sudo openvpn --config client.ovpn \\"
+             echo "  --remote ${{ steps.ip.outputs.ip }} --rport ${{ steps.ip.outputs.port }} \\"
+             echo "  --lport ${{ steps.user.outputs.lport }} \\"
+             echo "  --redirect-gateway def1"
+             echo ""
+             echo "Connect to the server's SSH with: ssh root@192.168.166.1"
+           
 
 
       - name: Run OpenVPN
