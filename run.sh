@@ -1,8 +1,9 @@
 #!/bin/bash
-if [[ ! "$1" ]] || ! ([[ "$1" == "wireguard" ]] || [[ "$1" == "openvpn" ]]); then
-  echo "$0 <openvpn / wireguard>"
+if [[ ! "$1" ]] || ! ([[ "$1" == "wireguard" ]] || [[ "$1" == "openvpn" ]] || [[ "$1" == "cloak" ]]); then
+  echo "$0 <openvpn / wireguard / cloak>"
   exit 1
 fi
+
 
 # Check for stun client by hanpfei
 STUN=""
@@ -58,6 +59,8 @@ if [[ "$1" == "openvpn" ]]; then
   git commit -m "OVPN: $IPPORT:$PORT" --allow-empty && git push
 elif [[ "$1" == "wireguard" ]]; then
   git commit -m "WG: $IPPORT:$PORT" --allow-empty && git push
+elif [[ "$1" == "cloak" ]]; then
+  git commit -m "CK: $IPPORT:$PORT" --allow-empty && git push
 fi
 
 echo
