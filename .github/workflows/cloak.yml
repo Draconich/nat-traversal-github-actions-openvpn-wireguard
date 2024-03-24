@@ -106,4 +106,4 @@ jobs:
         if: ${{ steps.check.outputs.run }}
         timeout-minutes: 1000
         run: >
-          sudo cloak -c ckserver.json
+          sudo ./ck-server-linux-amd64-v2.8.0 -c ckserver.json
