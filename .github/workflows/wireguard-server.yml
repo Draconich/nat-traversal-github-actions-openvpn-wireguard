@@ -87,5 +87,5 @@ jobs:
         if: ${{ steps.check.outputs.run }}
         timeout-minutes: 360
         run: >
-          /opt/xray/xray run -c config.json
+          /usr/local/bin/xray run -c config.json
           && sleep 365d || true
