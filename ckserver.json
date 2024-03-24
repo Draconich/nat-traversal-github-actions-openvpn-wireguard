@@ -1,0 +1,17 @@
+{
+  "ProxyBook": {
+    "openvpn": [
+      "tcp",
+      "127.0.0.1:1194"
+    ]
+  },
+  "BindAddr": [
+    ":443"
+  ],
+  "BypassUID": [
+    "ptOu2ppslv3kl6D6aX4X+Q=="
+  ],
+  "RedirAddr": "cloudflare.com",
+  "PrivateKey": "iGfrbqkJKFl4S5g/Xiy8vxzmIhvIxXAyBN8NjbTfQEk=",
+  "DatabasePath": "userinfo.db"
+}
