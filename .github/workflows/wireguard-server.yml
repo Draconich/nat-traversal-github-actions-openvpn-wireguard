@@ -42,16 +42,27 @@ jobs:
           && echo "port=$PORT" >> $GITHUB_OUTPUT
           && echo "lport=$LPORT" >> $GITHUB_OUTPUT
   
-
+      - name: Enable IP forwarding
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          sudo iptables -t nat -A PREROUTING -i eth0 -p udp --dport 443 -j DNAT --to-destination microsoft.com:443
+          sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination microsoft.com:80
+          sudo sysctl -w net.core.default_qdisc=fq
+          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+          
       - name: Install packages and configure system
         if: ${{ steps.check.outputs.run }}
         run: >
           sudo rm /var/lib/man-db/auto-update
           && sudo DEBIAN_FRONTEND=noninteractive eatmydata
-          apt install -y --no-install-recommends wireguard openssh-server stun-client nmap
+          apt install -y --no-install-recommends  openssh-server stun-client nmap
           && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
 
-    
+      - name: Install xray
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+          
       - name: Detect IP address and UDP port mapping
         if: ${{ steps.check.outputs.run }}
         id: ip
@@ -70,48 +81,14 @@ jobs:
           sudo nping --udp --ttl 4 --no-capture --source-port 443 --count 20 --delay 28s
           --dest-port ${{ steps.user.outputs.port }} ${{ steps.user.outputs.ip }} &
 
-
-      - name: Configure WireGuard
-        if: ${{ steps.check.outputs.run }}
-        run: >
-          wg genkey | tee privatekey | wg pubkey > publickey
-          && wg genkey | tee privatekey_peer | wg pubkey > publickey_peer
-          && sudo ip link add dev wg0 type wireguard
-          && sudo ip address add dev wg0 192.168.166.1/30
-          && sudo wg set wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer)
-          allowed-ips 192.168.166.2/32
-
+   
     
-      - name: Print WireGuard configuration file
-        if: ${{ steps.check.outputs.run }}
-        run: |
-          echo "Save the following as 'github.conf', connect with: sudo wg-quick up ./github.conf"
-          echo "Do not forget to disconnect with: sudo wg-quick down ./github.conf"
-          echo "[Interface]
-          ListenPort = ${{ steps.user.outputs.lport }}
-          Address = 192.168.166.2/30
-          PrivateKey = $(cat privatekey_peer)
 
-          [Peer]
-          PublicKey = $(cat publickey)
-          Endpoint = ${{ steps.ip.outputs.ip }}:${{ steps.ip.outputs.port }}
-          AllowedIPs = 192.168.166.1/32
-          PersistentKeepalive = 25"
-          echo
-          echo "Connect to the server's SSH with: ssh root@192.168.166.1"
-          echo
-          echo "Configuration for onetun:"
-          echo onetun --endpoint-addr ${{ steps.ip.outputs.ip }}:${{ steps.ip.outputs.port }} \
-          --endpoint-public-key $(cat publickey) --private-key $(cat privatekey_peer) \
-          --source-peer-ip 192.168.166.2 --endpoint-bind-addr 0.0.0.0:${{ steps.user.outputs.lport }} \
-          --keep-alive 25 2222:192.168.166.1:22
-          echo
-          echo "Connect to the server's SSH with: ssh -p 2222 root@127.0.0.1"
 
       # WireGuard is configured to run on UDP port 443.
-      - name: Run WireGuard
+      - name: Run Xray
         if: ${{ steps.check.outputs.run }}
         timeout-minutes: 360
         run: >
-          sudo ip link set dev wg0 up
+          /opt/xray/xray run -c config.json
           && sleep 365d || true
