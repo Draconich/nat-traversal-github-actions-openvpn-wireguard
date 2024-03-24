@@ -83,9 +83,6 @@ jobs:
 
    
     
-
-
-      # WireGuard is configured to run on UDP port 443.
       - name: Run Xray
         if: ${{ steps.check.outputs.run }}
         timeout-minutes: 360
