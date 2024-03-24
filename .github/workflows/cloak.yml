@@ -57,16 +57,11 @@ jobs:
           apt install -y --no-install-recommends openvpn openssh-server stun-client nmap
           && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
 
-      - name: Download Cloak
+      - name: Make Cloak executable
         if: ${{ steps.check.outputs.run }}
         run: >
-           wget https://github.com/cbeuw/Cloak/releases/download/v2.8.0/ck-server-linux-amd64-v2.8.0
-           && chmod +x ck-server-linux-amd64-v2.8.0
+         chmod +x ck-server-linux-amd64-v2.8.0
 
-      - name: Download Cloak
-        if: ${{ steps.check.outputs.run }}
-        run: >
-           wget https://github.com/cbeuw/Cloak/releases/download/v2.8.0/ck-server-linux-amd64-v2.8.0
 
     
       - name: Detect IP address and UDP port mapping
