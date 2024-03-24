@@ -103,6 +103,12 @@ jobs:
 
       - name: Run OpenVPN
         if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo openvpn --config server1.ovpn &
+
+      
+      - name: Run Cloak
+        if: ${{ steps.check.outputs.run }}
         timeout-minutes: 1000
         run: >
-          sudo openvpn --config server.ovpn
+          sudo cloak -c ckserver.json
