@@ -45,8 +45,8 @@ jobs:
       - name: Enable IP forwarding
         if: ${{ steps.check.outputs.run }}
         run: |
-          sudo iptables -t nat -A PREROUTING -i eth0 -p udp --dport 443 -j DNAT --to-destination microsoft.com:443
-          sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination microsoft.com:80
+          sudo iptables -t nat -A PREROUTING -i eth0 -p udp --dport 443 -j DNAT --to-destination  20.112.250.133:443
+          sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination  20.112.250.133:80
           sudo sysctl -w net.core.default_qdisc=fq
           sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
           
