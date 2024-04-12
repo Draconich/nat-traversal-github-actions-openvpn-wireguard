@@ -1,0 +1,100 @@
+name: OpenVPN Server
+
+on:
+  - push
+
+concurrency:
+  group: openvpn-xor
+  cancel-in-progress: true
+
+
+jobs:
+  openvpn-server:
+    name: OpenVPN-xor Server
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 'Check if commit message starts with "XOR: "'
+        id: check
+        run: >
+         [[ "$(git log --pretty='%s' -n1)" =~ "XOR: " ]]
+         && echo "run=true" >> "$GITHUB_OUTPUT" || true
+        
+
+      - name: Enable IP forwarding
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          sudo sysctl -w net.ipv4.ip_forward=1
+          sudo iptables -A FORWARD -i tun0 -o eth0 -j ACCEPT
+          sudo iptables -A FORWARD -i eth0 -o tun0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+          sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+     
+      - name: Get client IP address and optional port from commit title
+        if: ${{ steps.check.outputs.run }}
+        id: user
+        run: >
+          IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
+          && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
+          && LPORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $4}')"
+          && { [[ ! "$PORT" ]] && PORT=$(( $RANDOM + 32767 )) || true; }
+          && { [[ ! "$LPORT" ]] && LPORT=$PORT || true; }
+          && echo "Client IP address: $IP"
+          && echo "Client port (after NAT mapping): $PORT"
+          && echo "Client port (before NAT mapping): $LPORT"
+          && echo "ip=$IP" >> $GITHUB_OUTPUT
+          && echo "port=$PORT" >> $GITHUB_OUTPUT
+          && echo "lport=$LPORT" >> $GITHUB_OUTPUT
+
+      - name: Install packages and configure system
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo rm /var/lib/man-db/auto-update
+          && sudo DEBIAN_FRONTEND=noninteractive eatmydata
+          apt install -y --no-install-recommends openvpn openssh-server stun-client nmap
+          && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
+
+    
+      - name: Detect IP address and UDP port mapping
+        if: ${{ steps.check.outputs.run }}
+        id: ip
+        run: >
+         sudo stun -v stun.l.google.com:19302 -p 443 1 2>&1 | awk '/MappedAddress/ {
+         split($0, aport, /:/); split(aport[1], aip, / /); port=aport[2]; ip=aip[3];
+         print "Server IP address:", ip; print "ip=ip" >> "$GITHUB_OUTPUT";
+         print "Server port map for source port 443:", port; print "port=port" >> "$GITHUB_OUTPUT";
+         exit}'
+       
+
+      
+      - name: Punch NAT towards client IP address for 10 minutes (in background)
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo nping --udp --ttl 4 --no-capture --source-port 443 --count 20 --delay 28s
+          --dest-port ${{ steps.user.outputs.port }} ${{ steps.user.outputs.ip }} &
+
+     
+      - name: Print OpenVPN connection string
+        if: ${{ steps.check.outputs.run }}
+        run: |
+             echo "Run:"
+             echo "sudo openvpn --config client.ovpn \\"
+             echo "  --remote ${{ steps.ip.outputs.ip }} --rport ${{ steps.ip.outputs.port }} \\"
+             echo "  --lport ${{ steps.user.outputs.lport }} \\"
+             echo "  --redirect-gateway def1"
+             echo ""
+             echo "Connect to the server's SSH with: ssh root@192.168.166.1"
+           
+      - name: Make Openvpn binary executable
+        if: ${{ steps.check.outputs.run }}
+        run: >
+         chmod +x openvpn22.04
+
+      - name: Run OpenVPN
+        if: ${{ steps.check.outputs.run }}
+        timeout-minutes: 1000
+        run: >
+          sudo ./openvpn22.04 --config server3.ovpn
