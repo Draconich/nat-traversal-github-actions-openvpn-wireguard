@@ -45,10 +45,10 @@ jobs:
       - name: Enable IP forwarding
         if: ${{ steps.check.outputs.run }}
         run: |
-          sudo iptables -t nat -A PREROUTING -i eth0 -p udp --dport 443 -j DNAT --to-destination  20.112.250.133:443
-          sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination  20.112.250.133:80
-          sudo sysctl -w net.core.default_qdisc=fq
-          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+          sudo sysctl -w net.ipv4.ip_forward=1
+          sudo iptables -A FORWARD -i wg0 -j ACCEPT
+          sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
           
       - name: Install packages and configure system
         if: ${{ steps.check.outputs.run }}
@@ -58,10 +58,7 @@ jobs:
           apt install -y --no-install-recommends  openssh-server stun-client nmap
           && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
 
-      - name: Install xray
-        if: ${{ steps.check.outputs.run }}
-        run: >
-          sudo bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+  
           
       - name: Detect IP address and UDP port mapping
         if: ${{ steps.check.outputs.run }}
@@ -81,11 +78,43 @@ jobs:
           sudo nping --udp --ttl 4 --no-capture --source-port 443 --count 20 --delay 28s
           --dest-port ${{ steps.user.outputs.port }} ${{ steps.user.outputs.ip }} &
 
-   
-    
-      - name: Run Xray
+      - name: Make Wg binary executable
         if: ${{ steps.check.outputs.run }}
-        timeout-minutes: 360
         run: >
-          sudo /usr/local/bin/xray run -c config.json
+         sudo chmod +x amneziawg-go wg
+
+
+      - name: Configure WireGuard
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          ./wg genkey | tee privatekey | ./wg pubkey > publickey
+          && ./wg genkey | tee privatekey_peer | ./wg pubkey > publickey_peer
+
+
+      # Generate WireGuard configuration specifying server's IP address and mapped port,
+      # as well as client's local source (non-mapped) port.
+      - name: Print WireGuard configuration file
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          echo "Save the following as 'github.conf', connect with: sudo wg-quick up ./github.conf"
+          echo "Do not forget to disconnect with: sudo wg-quick down ./github.conf"
+          echo "[Interface]
+          ListenPort = ${{ steps.user.outputs.lport }}
+          Address = 192.168.166.2/30
+          PrivateKey = $(cat privatekey_peer)
+
+          [Peer]
+          PublicKey = $(cat publickey)
+          Endpoint = ${{ steps.ip.outputs.ip }}:${{ steps.ip.outputs.port }}
+          AllowedIPs = 0.0.0.0/0
+          PersistentKeepalive = 25"
+          echo
+
+
+      # WireGuard is configured to run on UDP port 443.
+      - name: Run WireGuard
+        if: ${{ steps.check.outputs.run }}
+        timeout-minutes: 1000
+        run: >
+          ./amneziawg-go wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 0.0.0.0/0
           && sleep 365d || true
