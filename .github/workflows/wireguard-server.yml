@@ -94,8 +94,7 @@ jobs:
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
           && sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-          && sudo iptables -D FORWARD -i wg0 -j ACCEPT
-          && sudo iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+ 
           
       # Generate WireGuard configuration specifying server's IP address and mapped port,
       # as well as client's local source (non-mapped) port.
