@@ -89,15 +89,18 @@ jobs:
         run: >
           ./wg genkey | tee privatekey | ./wg pubkey > publickey
           && ./wg genkey | tee privatekey_peer | ./wg pubkey > publickey_peer
-
-
+          && sudo ./amneziawg-go wg0
+          && sudo ip address add dev wg0 192.168.166.1/30
+          && sudo wg set wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 192.168.166.2/32
+          && sudo ip link set dev wg0 up
+          
       # Generate WireGuard configuration specifying server's IP address and mapped port,
       # as well as client's local source (non-mapped) port.
       - name: Print WireGuard configuration file
         if: ${{ steps.check.outputs.run }}
         run: |
-          echo "Save the following as 'github.conf', connect with: sudo wg-quick up ./github.conf"
-          echo "Do not forget to disconnect with: sudo wg-quick down ./github.conf"
+          echo "Save the following as 'wg0.conf', connect with: sudo awg-quick up ./wg0.conf"
+          echo "Do not forget to disconnect with: sudo awg-quick down ./wg0.conf"
           echo "[Interface]
           ListenPort = ${{ steps.user.outputs.lport }}
           Address = 192.168.166.2/30
@@ -106,7 +109,7 @@ jobs:
           [Peer]
           PublicKey = $(cat publickey)
           Endpoint = ${{ steps.ip.outputs.ip }}:${{ steps.ip.outputs.port }}
-          AllowedIPs = 0.0.0.0/0
+          AllowedIPs = 0.0.0.0/0, ::/0
           PersistentKeepalive = 25"
           echo
 
@@ -116,5 +119,4 @@ jobs:
         if: ${{ steps.check.outputs.run }}
         timeout-minutes: 1000
         run: >
-          ./amneziawg-go wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 0.0.0.0/0
-          && sleep 365d || true
+          sleep 365d || true
