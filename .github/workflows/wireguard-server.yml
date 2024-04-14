@@ -92,8 +92,10 @@ jobs:
           && sudo ip address add dev wg0 192.168.166.1/30
           && sudo ./wg set wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 192.168.166.2/32
           && sudo ip link set dev wg0 up
-          && sudo iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-          && sudo iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+          && sudo iptables -A FORWARD -i wg0 -j ACCEPT
+          && sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          && sudo iptables -D FORWARD -i wg0 -j ACCEPT
+          && sudo iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
           
       # Generate WireGuard configuration specifying server's IP address and mapped port,
       # as well as client's local source (non-mapped) port.
