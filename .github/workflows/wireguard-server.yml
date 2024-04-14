@@ -93,6 +93,7 @@ jobs:
           && sudo ./wg set wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 192.168.166.2/32
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
+          && sudo iptables -A FORWARD -o wg0 -j ACCEPT
           && sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
  
           
