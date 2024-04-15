@@ -11,9 +11,6 @@ jobs:
   wireguard-server:
     name: WireGuard Server
     runs-on: ubuntu-22.04
-    env:
-      PrivateKey: ${{ secrets.PRIVATEKEY }}
-      PublicKey: ${{ secrets.PUBLICKEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,11 +86,9 @@ jobs:
       - name: Configure WireGuard
         if: ${{ steps.check.outputs.run }}
         run: >
-          ./wg genkey | tee privatekey | ./wg pubkey > publickey
-          && ./wg genkey | tee privatekey_peer | ./wg pubkey > publickey_peer
           && sudo ./amneziawg-go wg0
           && sudo ip address add dev wg0 192.168.166.1/30
-          && sudo ./wg set wg0 listen-port 443 private-key "$PrivateKey" peer "$PublicKey" allowed-ips 192.168.166.2/32
+          && sudo ./wg set wg0 listen-port 443 private-key "MP1m9GxLf1nn4PnXWHfX6FbPGFBqhKcjoZKX4bzu41M=" peer "+2+UL/UW0W0ojmv6+eiXnzt7fnFhmmL5FRqkBnIplRc=" allowed-ips 192.168.166.2/32
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
           && sudo iptables -A FORWARD -o wg0 -j ACCEPT
