@@ -86,7 +86,7 @@ jobs:
       - name: Configure WireGuard
         if: ${{ steps.check.outputs.run }}
         run: >
-          && sudo ./amneziawg-go wg0
+          sudo ./amneziawg-go wg0
           && sudo ip address add dev wg0 192.168.166.1/30
           && sudo ./wg set wg0 listen-port 443 private-key "MP1m9GxLf1nn4PnXWHfX6FbPGFBqhKcjoZKX4bzu41M=" peer "+2+UL/UW0W0ojmv6+eiXnzt7fnFhmmL5FRqkBnIplRc=" allowed-ips 192.168.166.2/32
           && sudo ip link set dev wg0 up
