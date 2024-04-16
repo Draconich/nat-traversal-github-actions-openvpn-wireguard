@@ -86,11 +86,9 @@ jobs:
       - name: Configure WireGuard
         if: ${{ steps.check.outputs.run }}
         run: >
-          ./wg genkey | tee privatekey | ./wg pubkey > publickey
-          && ./wg genkey | tee privatekey_peer | ./wg pubkey > publickey_peer
-          && sudo ./amneziawg-go wg0
+          sudo ./amneziawg-go wg0
           && sudo ip address add dev wg0 192.168.166.1/30
-          && sudo ./wg set wg0 listen-port 443 private-key privatekey peer $(cat publickey_peer) allowed-ips 192.168.166.2/32
+          && sudo ./wg set wg0 listen-port 443 private-key ServerPrivateKey peer x9u14NXtOKyQHj172VXX1ZvaDveQIov2YxHKihRPSk8=  allowed-ips 192.168.166.2/32
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
           && sudo iptables -A FORWARD -o wg0 -j ACCEPT
