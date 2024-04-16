@@ -89,6 +89,7 @@ jobs:
           sudo ./amneziawg-go wg0
           && sudo ip address add dev wg0 192.168.166.1/30
           && sudo ./wg set wg0 listen-port 443 private-key ServerPrivateKey peer x9u14NXtOKyQHj172VXX1ZvaDveQIov2YxHKihRPSk8=  allowed-ips 192.168.166.2/32
+          && sudo ./wg syncconf wg0 ./WGserver.conf
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
           && sudo iptables -A FORWARD -o wg0 -j ACCEPT
@@ -105,10 +106,8 @@ jobs:
           echo "[Interface]
           ListenPort = ${{ steps.user.outputs.lport }}
           Address = 192.168.166.2/30
-          PrivateKey = $(cat privatekey_peer)
 
           [Peer]
-          PublicKey = $(cat publickey)
           Endpoint = ${{ steps.ip.outputs.ip }}:${{ steps.ip.outputs.port }}
           AllowedIPs = 0.0.0.0/0, ::/0
           PersistentKeepalive = 25"
