@@ -17,7 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-   
+      - name: Set up secret file
+        env:
+          SERVER_KEY: ${{ secrets.PRIVATEKEY }}
+        run: |
+          echo $SERVER_KEY >> serverkey.txt
+
+          
       - name: 'Check if commit message starts with "WG: "'
         id: check
         run: >
@@ -88,7 +94,7 @@ jobs:
         run: >
           sudo ./amneziawg-go wg0
           && sudo ip address add dev wg0 192.168.166.1/30
-          && sudo ./wg set wg0 listen-port 443 private-key ServerPrivateKey peer x9u14NXtOKyQHj172VXX1ZvaDveQIov2YxHKihRPSk8=  allowed-ips 192.168.166.2/32
+          && sudo ./wg set wg0 listen-port 443 private-key serverkey.txt peer x9u14NXtOKyQHj172VXX1ZvaDveQIov2YxHKihRPSk8=  allowed-ips 192.168.166.2/32
           && sudo ./wg syncconf wg0 ./WGserver.conf
           && sudo ip link set dev wg0 up
           && sudo iptables -A FORWARD -i wg0 -j ACCEPT
