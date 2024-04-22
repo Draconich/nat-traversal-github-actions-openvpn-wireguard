@@ -22,6 +22,7 @@ jobs:
           SERVER_KEY: ${{ secrets.PRIVATEKEY }}
         run: |
           echo $SERVER_KEY >> serverkey.txt
+          sed -i '/^\[Interface\]/a PrivateKey = '"$(cat serverkey.txt)"'' WGserver.conf
 
           
       - name: 'Check if commit message starts with "WG: "'
