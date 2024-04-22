@@ -1,4 +1,4 @@
-name: OpenVPN Server
+name: OpenVPN-XOR Server
 
 on:
   - push
