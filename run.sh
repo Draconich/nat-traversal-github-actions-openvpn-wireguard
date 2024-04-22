@@ -1,6 +1,6 @@
 #!/bin/bash
-if [[ ! "$1" ]] || ! ([[ "$1" == "wireguard" ]] || [[ "$1" == "openvpn" ]] || [[ "$1" == "cloak" ]] || [[ "$1" == "xor" ]] ); then
-  echo "$0 <openvpn / wireguard / cloak / xor>"
+if [[ ! "$1" ]] || ! ([[ "$1" == "wireguard" ]] || [[ "$1" == "openvpn" ]] || [[ "$1" == "xor" ]] ); then
+  echo "$0 <openvpn / wireguard / xor>"
   exit 1
 fi
 
@@ -59,8 +59,6 @@ if [[ "$1" == "openvpn" ]]; then
   git commit -m "OVPN: $IPPORT:$PORT" --allow-empty && git push
 elif [[ "$1" == "wireguard" ]]; then
   git commit -m "WG: $IPPORT:$PORT" --allow-empty && git push
-elif [[ "$1" == "cloak" ]]; then
-  git commit -m "CK: $IPPORT:$PORT" --allow-empty && git push
 elif [[ "$1" == "xor" ]]; then
   git commit -m "XOR: $IPPORT:$PORT" --allow-empty && git push
 fi
