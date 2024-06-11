@@ -1,0 +1,101 @@
+name: WireGuard Direct
+
+on:
+  - push
+
+concurrency:
+  group: wireguard
+  cancel-in-progress: true
+
+jobs:
+  wireguard-direct:
+    name: WireGuard Direct
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up secret file
+        env:
+          SERVER_KEY: ${{ secrets.PRIVATEKEY }}
+        run: |
+          echo $SERVER_KEY >> serverkey.txt
+          sed -i '/^\[Interface\]/a PrivateKey = '"$(cat serverkey.txt)"'' WGserver.conf
+
+          
+      - name: 'Check if commit message starts with "DT: "'
+        id: check
+        run: >
+          [[ "$(git log --pretty='%s' -n1)" =~ "DT: " ]]
+          && echo "run=true" >> "$GITHUB_OUTPUT" || true
+    
+      ## Connect with:
+      ##  ssh -J whateverlogin4@ssh-j.com root@github
+      - name: Connect to ssh-j
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes
+          whateverlogin4@ssh-j.com -N -R github:22:localhost:22
+      
+      - name: Get client IP address and optional port from commit title
+        if: ${{ steps.check.outputs.run }}
+        id: user
+        run: >
+          IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
+          && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
+          && echo "Client IP address: $IP"
+          && echo "Client port (after NAT mapping): $PORT"
+          && echo "ip=$IP" >> $GITHUB_OUTPUT
+          && echo "port=$PORT" >> $GITHUB_OUTPUT
+
+  
+      - name: Update wg0.conf with client IP and port
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          sed -i "s/Endpoint = .*/Endpoint = ${{ steps.user.outputs.ip }}:${{ steps.user.outputs.port }}/" ./wg0.conf
+    
+      - name: Enable IP forwarding
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          sudo sysctl -w net.ipv4.ip_forward=1
+
+
+          
+      - name: Install packages and configure system
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo rm /var/lib/man-db/auto-update
+          && sudo DEBIAN_FRONTEND=noninteractive eatmydata
+          apt install -y --no-install-recommends  openssh-server  nmap
+          && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
+
+                 
+
+  
+      - name: Make Wg binary executable
+        if: ${{ steps.check.outputs.run }}
+        run: >
+         sudo chmod +x amneziawg-go wg
+
+
+      - name: Configure WireGuard
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          sudo ./amneziawg-go wg0
+          && sudo ip address add dev wg0 192.168.166.2/30
+          && sudo ./wg setconf wg0 ./wg0.conf
+          && sudo ip link set dev wg0 up
+          && sudo iptables -A FORWARD -i wg0 -j ACCEPT
+          && sudo iptables -A FORWARD -o wg0 -j ACCEPT
+          && sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+ 
+  
+
+      # WireGuard is configured to run on UDP port 443.
+      - name: Run WireGuard
+        if: ${{ steps.check.outputs.run }}
+        timeout-minutes: 1000
+        run: >
+          sleep 365d || true
