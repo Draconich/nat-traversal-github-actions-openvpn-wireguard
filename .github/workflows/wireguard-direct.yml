@@ -4,7 +4,7 @@ on:
   - push
 
 concurrency:
-  group: wireguard
+  group: wireguard-direct
   cancel-in-progress: true
 
 jobs:
