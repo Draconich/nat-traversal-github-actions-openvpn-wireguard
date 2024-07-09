@@ -22,7 +22,7 @@ jobs:
           SERVER_KEY: ${{ secrets.PRIVATEKEY }}
         run: |
           echo $SERVER_KEY >> serverkey.txt
-          sed -i '/^\[Interface\]/a PrivateKey = '"$(cat serverkey.txt)"'' WGserver.conf
+          sed -i '/^\[Interface\]/a PrivateKey = '"$(cat serverkey.txt)"'' wg0.conf
 
           
       - name: 'Check if commit message starts with "DT: "'
@@ -36,8 +36,7 @@ jobs:
       - name: Connect to ssh-j
         if: ${{ steps.check.outputs.run }}
         run: >
-          ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes
-          whateverlogin4@ssh-j.com -N -R github:22:localhost:22
+          ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes whateverlogin4@ssh-j.com -N -R github:22:localhost:22
       
       - name: Get client IP address and optional port from commit title
         if: ${{ steps.check.outputs.run }}
