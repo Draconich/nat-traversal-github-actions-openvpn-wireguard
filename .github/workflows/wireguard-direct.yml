@@ -31,12 +31,6 @@ jobs:
           [[ "$(git log --pretty='%s' -n1)" =~ "DT: " ]]
           && echo "run=true" >> "$GITHUB_OUTPUT" || true
     
-      ## Connect with:
-      ##  ssh -J whateverlogin4@ssh-j.com root@github
-      - name: Connect to ssh-j
-        if: ${{ steps.check.outputs.run }}
-        run: >
-          ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes whateverlogin4@ssh-j.com -N -R github:22:localhost:22
       
       - name: Get client IP address and optional port from commit title
         if: ${{ steps.check.outputs.run }}
@@ -60,17 +54,7 @@ jobs:
         run: |
           sudo sysctl -w net.ipv4.ip_forward=1
 
-
-          
-      - name: Install packages and configure system
-        if: ${{ steps.check.outputs.run }}
-        run: >
-          sudo rm /var/lib/man-db/auto-update
-          && sudo DEBIAN_FRONTEND=noninteractive eatmydata
-          apt install -y --no-install-recommends  openssh-server  nmap
-          && ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
-
-                 
+                
 
   
       - name: Make Wg binary executable
