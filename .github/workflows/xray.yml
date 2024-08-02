@@ -59,7 +59,7 @@ jobs:
 
       - name: Update Xray config with WireGuard details
         run: |
-         sed -i 's/"secretKey": "PRIVATE"/"secretKey": "'$(grep PrivateKey wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
+         sed -i "s|\"secretKey\": \"PRIVATE\"|\"secretKey\": \"$(grep PrivateKey wgcf-profile.conf | cut -d ' ' -f 3)\"|" ./bridge-warp.json
          sed -i 's/"address": \["172.16.0.2\/32", "2606:4700:110:8949:fed8:2642:a640:c8e1\/128"\]/"address": ['$(grep Address wgcf-profile.conf | sed 's/Address = /"/g' | sed 's/$/"/' | tr '\n' ',' | sed 's/,$//')']/' ./bridge-warp.json
          sed -i 's/"publicKey": "PUBLIC"/"publicKey": "'$(grep PublicKey wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
          sed -i 's/"endpoint": "engage.cloudflareclient.com:2408"/"endpoint": "'$(grep Endpoint wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
