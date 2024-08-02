@@ -1,0 +1,74 @@
+name: Xray
+
+on:
+  - push
+
+concurrency:
+  group: xray
+  cancel-in-progress: true
+
+jobs:
+  xray:
+    name: Xray
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 'Check if commit message starts with "XR: "'
+        id: check
+        run: >
+          [[ "$(git log --pretty='%s' -n1)" =~ "XR: " ]]
+          && echo "run=true" >> "$GITHUB_OUTPUT" || true
+
+      - name: Set up secret file
+        env:
+          SERVER_KEY: ${{ secrets.UUID }}
+        run: |
+          echo $UUID >> uuid.txt
+          sed -i 's/"id": "[^"]*"/"id": "'$(cat uuid.txt)'"/' ./bridge-warp.json
+
+      - name: Make sure binaries are executable, get xray and CF WARP
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          curl -L https://github.com/XTLS/Xray-core/releases/download/v1.8.23/Xray-linux-64.zip -o xray.zip
+          unzip xray.zip
+          sudo chmod +x xray wgcf
+          ./wgcf register --accept-tos
+          ./wgcf generate
+
+      - name: Get client IP address and optional port from commit title
+        if: ${{ steps.check.outputs.run }}
+        id: user
+        run: >
+          IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
+          && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
+          && echo "Client IP address: $IP"
+          && echo "Client port (after NAT mapping): $PORT"
+          && echo "ip=$IP" >> $GITHUB_OUTPUT
+          && echo "port=$PORT" >> $GITHUB_OUTPUT
+
+
+      - name: Optimize network settings
+        if: ${{ steps.check.outputs.run }}
+        run: |
+          sudo sysctl -w net.core.default_qdisc=fq
+          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+
+      - name: Update Xray config with WireGuard details
+        run: |
+         sed -i 's/"secretKey": "PRIVATE"/"secretKey": "'$(grep PrivateKey wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
+         sed -i 's/"address": \["172.16.0.2\/32", "2606:4700:110:8949:fed8:2642:a640:c8e1\/128"\]/"address": ['$(grep Address wgcf-profile.conf | sed 's/Address = /"/g' | sed 's/$/"/' | tr '\n' ',' | sed 's/,$//')']/' ./bridge-warp.json
+         sed -i 's/"publicKey": "PUBLIC"/"publicKey": "'$(grep PublicKey wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
+         sed -i 's/"endpoint": "engage.cloudflareclient.com:2408"/"endpoint": "'$(grep Endpoint wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
+         sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "${{ steps.user.outputs.ip }}",/' ./bridge-warp.json
+
+
+      - name: Run Xray
+        if: ${{ steps.check.outputs.run }}
+        timeout-minutes: 1000
+        run: >
+          sudo ./xray run -c bridge-warp.json
+          && sleep 365d || true
