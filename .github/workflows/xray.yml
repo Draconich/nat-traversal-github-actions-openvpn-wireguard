@@ -59,10 +59,20 @@ jobs:
 
       - name: Update Xray config with WireGuard details
         run: |
-         sed -i "s|\"secretKey\": \"PRIVATE\"|\"secretKey\": \"$(grep PrivateKey wgcf-profile.conf | cut -d ' ' -f 3)\"|" ./bridge-warp.json
-         sed -i 's/"address": \["172.16.0.2\/32", "2606:4700:110:8949:fed8:2642:a640:c8e1\/128"\]/"address": ['$(grep Address wgcf-profile.conf | sed 's/Address = /"/g' | sed 's/$/"/' | tr '\n' ',' | sed 's/,$//')']/' ./bridge-warp.json
-         sed -i 's/"publicKey": "PUBLIC"/"publicKey": "'$(grep PublicKey wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
-         sed -i 's/"endpoint": "engage.cloudflareclient.com:2408"/"endpoint": "'$(grep Endpoint wgcf-profile.conf | cut -d ' ' -f 3)'"/' ./bridge-warp.json
+         # Extract values from wgcf-profile.conf
+         PRIVATE_KEY=$(grep '^PrivateKey' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
+         WG_ADDRESSES=$(grep '^Address' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ' | paste -sd ',' -)
+         PUBLIC_KEY=$(grep '^PublicKey' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
+         ENDPOINT=$(grep '^Endpoint' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
+    
+         # Perform replacements in bridge-warp.json
+         sed -i \
+          -e "s|\"secretKey\": \"PRIVATE\"|\"secretKey\": \"$PRIVATE_KEY\"|" \
+          -e "/\"protocol\": \"wireguard\"/,/\"tag\"/s|\"address\": \[[^]]*\]|\"address\": [\"${WG_ADDRESSES//,/\",\"}\"]|" \
+          -e "s|\"publicKey\": \"PUBLIC\"|\"publicKey\": \"$PUBLIC_KEY\"|" \
+          -e "s|\"endpoint\": \"[^\"]*\"|\"endpoint\": \"$ENDPOINT\"|" \
+           bridge-warp.json
+
          sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "${{ steps.user.outputs.ip }}",/' ./bridge-warp.json
 
 
