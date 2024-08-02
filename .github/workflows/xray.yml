@@ -23,6 +23,11 @@ jobs:
           [[ "$(git log --pretty='%s' -n1)" =~ "XR: " ]]
           && echo "run=true" >> "$GITHUB_OUTPUT" || true
 
+      - name: Connect to ssh-j
+        if: ${{ steps.check.outputs.run }}
+        run: >
+         ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes supercoollogin@ssh-j.com -N -R github:22:localhost:22
+          
       - name: Set up secret file
         env:
           UUID: ${{ secrets.UUID }}
