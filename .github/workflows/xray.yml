@@ -25,7 +25,7 @@ jobs:
 
       - name: Set up secret file
         env:
-          SERVER_KEY: ${{ secrets.UUID }}
+          UUID: ${{ secrets.UUID }}
         run: |
           echo $UUID >> uuid.txt
           sed -i 's/"id": "[^"]*"/"id": "'$(cat uuid.txt)'"/' ./bridge-warp.json
