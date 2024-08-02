@@ -1,0 +1,84 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+
+  "reverse": {
+    "bridges": [
+      {
+        "tag": "bridge",
+        "domain": "reverse.hellohabr.com"
+      }
+    ]
+  },
+  "outbounds": [
+    {
+      "protocol": "vless",
+      "settings": {
+        "vnext": [
+          {
+            "address": "192.168.1.35", // Replace with your server's IP address or domain
+            "port": 443, // Must match the port your server is listening on
+            "users": [
+              {
+                "id": "UUID", // Must match the server's client ID
+                "encryption": "none",
+                "flow": "xtls-rprx-vision" // Must match the server's flow
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "fingerprint": "chrome",
+          "serverName": "microsoft.com", // Must match one of the server's serverNames
+          "publicKey": "pNVkQojVsBa8lQZI9GKZOXJIyMdCSRYmhAJEbZcQlns", // Replace with the public key corresponding to the private key on the server
+          "spiderX": "", // Optional, leave empty or fill as needed
+          "shortId": "" // Must match one of the server's shortIds
+        }
+      },
+      "tag": "outgoing"
+    },
+    {
+  "protocol": "wireguard",
+  "settings": {
+    "secretKey": "PRIVATE",
+    "address": ["172.16.0.2/32", "2606:4700:110:8949:fed8:2642:a640:c8e1/128"],
+    "peers": [
+      {
+        "publicKey": "PUBLIC",
+        "endpoint": "engage.cloudflareclient.com:2408"
+      }
+    ]
+  },
+  "tag": "wireguard-1"
+},
+
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block"
+    }
+  ],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "inboundTag": ["bridge"],
+        "domain": ["full:reverse.hellohabr.com"],
+        "outboundTag": "outgoing"
+      },
+      {
+        "type": "field",
+        "inboundTag": ["bridge"],
+        "outboundTag": "wireguard-1"
+      }
+    ]
+  }
+}
