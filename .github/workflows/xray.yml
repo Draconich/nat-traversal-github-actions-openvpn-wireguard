@@ -78,7 +78,7 @@ jobs:
           -e "s|\"endpoint\": \"[^\"]*\"|\"endpoint\": \"$ENDPOINT\"|" \
            bridge-warp.json
 
-         sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "${{ steps.user.outputs.ip }}",/' ./bridge-warp.json
+         sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "'${{ steps.user.outputs.ip }}'",/' ./bridge-warp.json
 
 
       - name: Run Xray
