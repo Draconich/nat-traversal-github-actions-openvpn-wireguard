@@ -43,7 +43,11 @@ jobs:
           && echo "ip=$IP" >> $GITHUB_OUTPUT
           && echo "port=$PORT" >> $GITHUB_OUTPUT
 
-  
+      - name: Configure ssh keys
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
+
       - name: Update wg0.conf with client IP and port
         if: ${{ steps.check.outputs.run }}
         run: |

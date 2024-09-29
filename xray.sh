@@ -15,7 +15,7 @@ while true; do
     # Get the current IP address
     IP=$(wget -qO - https://icanhazip.com)
     # Run the git command
-    git commit -m "DT: $IP:443" --allow-empty && git push
+    git commit -m "XR: $IP:443" --allow-empty && git push
 
     echo "Executed at $(date)"
 
