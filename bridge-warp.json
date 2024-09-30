@@ -77,7 +77,7 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
-        "domain": ["geosite:ru"],
+        "domain": ["geosite:category-gov-ru", "domain:ru"],
         "outboundTag": "wireguard-1"
       },
       {
