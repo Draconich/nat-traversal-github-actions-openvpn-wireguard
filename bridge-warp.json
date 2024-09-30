@@ -17,13 +17,13 @@
       "settings": {
         "vnext": [
           {
-            "address": "192.168.1.35", // Replace with your server's IP address or domain
-            "port": 443, // Must match the port your server is listening on
+            "address": "192.168.1.35",
+            "port": 443,
             "users": [
               {
-                "id": "UUID", // Must match the server's client ID
+                "id": "UUID",
                 "encryption": "none",
-                "flow": "xtls-rprx-vision" // Must match the server's flow
+                "flow": "xtls-rprx-vision"
               }
             ]
           }
@@ -34,29 +34,28 @@
         "security": "reality",
         "realitySettings": {
           "fingerprint": "chrome",
-          "serverName": "microsoft.com", // Must match one of the server's serverNames
-          "publicKey": "pNVkQojVsBa8lQZI9GKZOXJIyMdCSRYmhAJEbZcQlns", // Replace with the public key corresponding to the private key on the server
-          "spiderX": "", // Optional, leave empty or fill as needed
-          "shortId": "" // Must match one of the server's shortIds
+          "serverName": "cloudflare.com",
+          "publicKey": "pNVkQojVsBa8lQZI9GKZOXJIyMdCSRYmhAJEbZcQlns",
+          "spiderX": "",
+          "shortId": ""
         }
       },
       "tag": "outgoing"
     },
     {
-  "protocol": "wireguard",
-  "settings": {
-    "secretKey": "PRIVATE",
-    "address": ["172.16.0.2/32", "2606:4700:110:8949:fed8:2642:a640:c8e1/128"],
-    "peers": [
-      {
-        "publicKey": "PUBLIC",
-        "endpoint": "engage.cloudflareclient.com:2408"
-      }
-    ]
-  },
-  "tag": "wireguard-1"
-},
-
+      "protocol": "wireguard",
+      "settings": {
+        "secretKey": "PRIVATE",
+        "address": ["172.16.0.2/32", "2606:4700:110:8949:fed8:2642:a640:c8e1/128"],
+        "peers": [
+          {
+            "publicKey": "PUBLIC",
+            "endpoint": "engage.cloudflareclient.com:2408"
+          }
+        ]
+      },
+      "tag": "wireguard-1"
+    },
     {
       "protocol": "freedom",
       "tag": "direct"
@@ -67,6 +66,7 @@
     }
   ],
   "routing": {
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "type": "field",
@@ -77,7 +77,19 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
+        "domain": ["geosite:ru"],
         "outboundTag": "wireguard-1"
+      },
+      {
+        "type": "field",
+        "inboundTag": ["bridge"],
+        "ip": ["geoip:ru"],
+        "outboundTag": "wireguard-1"
+      },
+      {
+        "type": "field",
+        "inboundTag": ["bridge"],
+        "outboundTag": "outgoing"
       }
     ]
   }
