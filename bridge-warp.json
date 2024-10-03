@@ -89,7 +89,7 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
-        "outboundTag": "outgoing"
+        "outboundTag": "direct"
       }
     ]
   }
