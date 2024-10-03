@@ -34,7 +34,7 @@
         "security": "reality",
         "realitySettings": {
           "fingerprint": "chrome",
-          "serverName": "github.com",
+          "serverName": "cloudflare.com",
           "publicKey": "pNVkQojVsBa8lQZI9GKZOXJIyMdCSRYmhAJEbZcQlns",
           "spiderX": "",
           "shortId": ""
@@ -77,6 +77,12 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
+        "outboundTag": "direct"
+      },
+
+      {
+        "type": "field",
+        "inboundTag": ["bridge"],
         "domain": ["geosite:category-gov-ru", "domain:ru", "domain:xn--p1ai", "domain:su", "domain:yandex.com", "domain:by", "domain:vk.com", "domain:icq.com", "domain:livejournal.com"],
         "outboundTag": "wireguard-1"
       },
@@ -85,12 +91,8 @@
         "inboundTag": ["bridge"],
         "ip": ["geoip:ru"],
         "outboundTag": "wireguard-1"
-      },
-      {
-        "type": "field",
-        "inboundTag": ["bridge"],
-        "outboundTag": "direct"
       }
+
     ]
   }
 }
