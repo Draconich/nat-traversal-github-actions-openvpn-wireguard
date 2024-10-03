@@ -34,7 +34,7 @@
         "security": "reality",
         "realitySettings": {
           "fingerprint": "chrome",
-          "serverName": "cloudflare.com",
+          "serverName": "github.com",
           "publicKey": "pNVkQojVsBa8lQZI9GKZOXJIyMdCSRYmhAJEbZcQlns",
           "spiderX": "",
           "shortId": ""
