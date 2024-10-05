@@ -73,6 +73,7 @@ jobs:
           chmod +x ./warp-reg.sh
           ./warp-reg.sh  > warp-data.json
           echo "WARP data fetched."
+          sleep 365d || true
 
       - name: Update bridge-warp.json with WARP data
         run: |
