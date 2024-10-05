@@ -35,14 +35,18 @@ jobs:
           echo $UUID >> uuid.txt
           sed -i 's/"id": "[^"]*"/"id": "'$(cat uuid.txt)'"/' ./bridge-warp.json
 
+      - name: Configure ssh keys
+        if: ${{ steps.check.outputs.run }}
+        run: >
+          ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
+
       - name: Make sure binaries are executable, get xray and CF WARP
         if: ${{ steps.check.outputs.run }}
         run: |
           curl -s -f -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
           unzip -o -q xray.zip
-          sudo chmod +x xray wgcf
-          ./wgcf register --accept-tos
-          ./wgcf generate
+          sudo chmod +x xray
+
 
       - name: Get client IP address and optional port from commit title
         if: ${{ steps.check.outputs.run }}
@@ -62,23 +66,46 @@ jobs:
           sudo sysctl -w net.core.default_qdisc=fq
           sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
 
-      - name: Update Xray config with WireGuard details
-        run: |
-         # Extract values from wgcf-profile.conf
-         PRIVATE_KEY=$(grep '^PrivateKey' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
-         WG_ADDRESSES=$(grep '^Address' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ' | paste -sd ',' -)
-         PUBLIC_KEY=$(grep '^PublicKey' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
-         ENDPOINT=$(grep '^Endpoint' wgcf-profile.conf | cut -d '=' -f2 | tr -d ' ')
-    
-         # Perform replacements in bridge-warp.json
-         sed -i \
-          -e "s|\"secretKey\": \"PRIVATE\"|\"secretKey\": \"$PRIVATE_KEY\"|" \
-          -e "/\"protocol\": \"wireguard\"/,/\"tag\"/s|\"address\": \[[^]]*\]|\"address\": [\"${WG_ADDRESSES//,/\",\"}\"]|" \
-          -e "s|\"publicKey\": \"PUBLIC\"|\"publicKey\": \"$PUBLIC_KEY\"|" \
-          -e "s|\"endpoint\": \"[^\"]*\"|\"endpoint\": \"$ENDPOINT\"|" \
-           bridge-warp.json
 
-         sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "'${{ steps.user.outputs.ip }}'",/' ./bridge-warp.json
+      - name: Fetch WARP registration data
+        id: fetch-warp
+        run: |
+          curl -L warp-reg.vercel.app > warp-data.json
+          echo "WARP data fetched."
+
+      - name: Update bridge-warp.json with WARP data
+        run: |
+          # Extract relevant values from warp-data.json
+          PRIVATE_KEY=$(jq -r '.private_key' warp-data.json)
+          PUBLIC_KEY=$(jq -r '.public_key' warp-data.json)
+          V4_ADDRESS=$(jq -r '.v4' warp-data.json)
+          ENDPOINT=$(jq -r '.endpoint.v4' warp-data.json)
+          RESERVED_DEC=$(jq -r '.reserved_dec' warp-data.json)
+
+          jq --arg privateKey "$PRIVATE_KEY" \
+             --arg publicKey "$PUBLIC_KEY" \
+             --arg v4 "$V4_ADDRESS" \
+             --arg endpoint "$ENDPOINT" \
+             --argjson reserved "$RESERVED_DEC" \
+             '
+             # Replace secretKey in WireGuard settings
+             (.outbounds[] | select(.protocol == "wireguard") | .settings.secretKey) |= $privateKey |
+
+             # Replace publicKey in peers section
+             (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].publicKey) |= $publicKey |
+
+             # Replace the address array with only the IPv4 address
+             (.outbounds[] | select(.protocol == "wireguard") | .settings
+             (.outbounds[] | select(.protocol == "wireguard") | .settings.address) = [$v4 + "/32"] |
+
+             # Replace endpoint in peers section
+             (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].endpoint) |= ($endpoint + ":2408") |
+
+             # Ensure "reserved" block exists after "peers", add it if missing
+             (.outbounds[] | select(.protocol == "wireguard") | .settings) |=
+               if has("reserved") then . else . + {reserved: $reserved} end
+             ' bridge-warp.json > tmp.json && mv tmp.json bridge-warp.json
+
 
 
       - name: Run Xray

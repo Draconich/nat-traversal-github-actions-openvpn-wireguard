@@ -50,7 +50,8 @@
         "peers": [
           {
             "publicKey": "PUBLIC",
-            "endpoint": "engage.cloudflareclient.com:2408"
+            "endpoint": "engage.cloudflareclient.com:2408",
+            "keepAlive": 14
           }
         ]
       },
