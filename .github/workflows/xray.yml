@@ -40,7 +40,7 @@ jobs:
         run: >
           ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
 
-      - name: Make sure binaries are executable, get xray and CF WARP
+      - name: Make sure binaries are executable, get xray
         if: ${{ steps.check.outputs.run }}
         run: |
           curl -s -f -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
@@ -73,7 +73,7 @@ jobs:
           chmod +x ./warp-reg.sh
           ./warp-reg.sh  > warp-data.json
           echo "WARP data fetched."
-          sleep 365d || true
+
 
       - name: Update bridge-warp.json with WARP data
         run: |
@@ -97,8 +97,8 @@ jobs:
              (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].publicKey) |= $publicKey |
 
              # Replace the address array with only the IPv4 address
-             (.outbounds[] | select(.protocol == "wireguard") | .settings
              (.outbounds[] | select(.protocol == "wireguard") | .settings.address) = [$v4 + "/32"] |
+
 
              # Replace endpoint in peers section
              (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].endpoint) |= ($endpoint + ":2408") |
@@ -107,7 +107,7 @@ jobs:
              (.outbounds[] | select(.protocol == "wireguard") | .settings) |=
                if has("reserved") then . else . + {reserved: $reserved} end
              ' bridge-warp.json > tmp.json && mv tmp.json bridge-warp.json
-
+             sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "'${{ steps.user.outputs.ip }}'",/' ./bridge-warp.json
 
 
       - name: Run Xray
