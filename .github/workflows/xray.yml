@@ -70,7 +70,8 @@ jobs:
       - name: Fetch WARP registration data
         id: fetch-warp
         run: |
-          curl -L warp-reg.vercel.app > warp-data.json
+          chmod +x ./warp-reg.sh
+          ./warp-reg.sh  > warp-data.json
           echo "WARP data fetched."
 
       - name: Update bridge-warp.json with WARP data
