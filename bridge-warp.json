@@ -84,7 +84,7 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
-        "ip": ["geoip:ru"],
+        "ip": ["geoip:ru"],["195.211.222.2"] ,
         "outboundTag": "wireguard-1"
       },
       {
