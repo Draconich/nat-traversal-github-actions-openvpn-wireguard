@@ -78,23 +78,8 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
-        "domain": ["geosite:category-gov-ru", "domain:ru", "domain:xn--p1ai", "domain:su", "domain:yandex.com", "domain:by", "domain:vk.com", "domain:icq.com", "domain:livejournal.com", "domain:reddit.com", "domain:youtube.com", "domain:subyshare.com", "domain:youtu.be", "domain:googlevideo.com", "domain:ggpht.com", "domain:ytimg.com"],
         "outboundTag": "wireguard-1"
-      },
-      {
-        "type": "field",
-        "inboundTag": ["bridge"],
-        "ip": ["geoip:ru", "195.211.222.2"],
-        "outboundTag": "wireguard-1"
-      },
-      {
-        "type": "field",
-        "inboundTag": ["bridge"],
-        "outboundTag": "direct"
       }
-
-
-
     ]
   }
 }
