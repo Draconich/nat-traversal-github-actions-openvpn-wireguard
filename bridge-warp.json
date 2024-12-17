@@ -77,7 +77,7 @@
       {
         "type": "field",
         "inboundTag": ["bridge"],
-        "outboundTag": "freedom"
+        "outboundTag": "wireguard-1"
       }
     ]
   }
