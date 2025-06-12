@@ -1,118 +1,120 @@
 name: Xray
 
 on:
-  - push
+    - push
 
 concurrency:
-  group: xray
-  cancel-in-progress: true
+    group: xray
+    cancel-in-progress: true
 
 jobs:
-  xray:
-    name: Xray
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    xray:
+        name: Xray
+        runs-on: ubuntu-22.04
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: 'Check if commit message starts with "XR: "'
-        id: check
-        run: >
-          [[ "$(git log --pretty='%s' -n1)" =~ "XR: " ]]
-          && echo "run=true" >> "$GITHUB_OUTPUT" || true
+            - name: 'Check if commit message starts with "XR: "'
+              id: check
+              run: >
+                  [[ "$(git log --pretty='%s' -n1)" =~ "XR: " ]]
+                  && echo "run=true" >> "$GITHUB_OUTPUT" || true
 
-      - name: Connect to ssh-j
-        if: ${{ steps.check.outputs.run }}
-        run: >
-         ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes supercoollogin@ssh-j.com -N -R github:22:localhost:22 || true
-          
-      - name: Set up secret file
-        env:
-          UUID: ${{ secrets.UUID }}
-        run: |
-          echo $UUID >> uuid.txt
-          sed -i 's/"id": "[^"]*"/"id": "'$(cat uuid.txt)'"/' ./bridge-warp.json
+            - name: Connect to ssh-j
+              if: ${{ steps.check.outputs.run }}
+              run: >
+                  ssh -f -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes supercoollogin@ssh-j.com -N -R github:22:localhost:22 || true
 
-      - name: Configure ssh keys
-        if: ${{ steps.check.outputs.run }}
-        run: >
-          ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
+            - name: Set up secret file
+              env:
+                  UUID: ${{ secrets.UUID }}
+              run: |
+                  echo $UUID >> uuid.txt
+                  sed -i 's/"id": "[^"]*"/"id": "'$(cat uuid.txt)'"/' ./bridge-warp.json
 
-      - name: Make sure binaries are executable, get xray
-        if: ${{ steps.check.outputs.run }}
-        run: |
-          curl -s -f -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
-          unzip -o -q xray.zip
-          sudo chmod +x xray
+            - name: Configure ssh keys
+              if: ${{ steps.check.outputs.run }}
+              run: >
+                  ([ -f authorized_keys ] && cat authorized_keys | sudo tee /root/.ssh/authorized_keys || true)
 
+            - name: Make sure binaries are executable, get xray
+              if: ${{ steps.check.outputs.run }}
+              run: |
+                  curl -s -f -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip -o xray.zip
+                  unzip -o -q xray.zip
+                  sudo chmod +x xray
 
-      - name: Get client IP address and optional port from commit title
-        if: ${{ steps.check.outputs.run }}
-        id: user
-        run: >
-          IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
-          && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
-          && echo "Client IP address: $IP"
-          && echo "Client port (after NAT mapping): $PORT"
-          && echo "ip=$IP" >> $GITHUB_OUTPUT
-          && echo "port=$PORT" >> $GITHUB_OUTPUT
+            - name: Get client IP address and optional port from commit title
+              if: ${{ steps.check.outputs.run }}
+              id: user
+              run: >
+                  IP="$(git log --pretty='%s' -n1 | awk '{split($2, a, /:/);print a[1]}')"
+                  && PORT="$(git log --pretty='%s' -n1 | awk -F ':' '{print $3}')"
+                  && echo "Client IP address: $IP"
+                  && echo "Client port (after NAT mapping): $PORT"
+                  && echo "ip=$IP" >> $GITHUB_OUTPUT
+                  && echo "port=$PORT" >> $GITHUB_OUTPUT
 
+            - name: Optimize network settings
+              if: ${{ steps.check.outputs.run }}
+              run: |
+                  sudo sysctl -w net.core.default_qdisc=fq
+                  sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
 
-      - name: Optimize network settings
-        if: ${{ steps.check.outputs.run }}
-        run: |
-          sudo sysctl -w net.core.default_qdisc=fq
-          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+            - name: Fetch WARP registration data
+              id: fetch-warp
+              run: |
+                  chmod +x ./warp-reg.sh
+                  ./warp-reg.sh  > warp-data.json
+                  echo "WARP data fetched."
 
+            - name: Debug - Show warp-data.json contents
+              run: |
+                  echo "--- Contents of warp-data.json ---"
+                  cat warp-data.json
+                  echo "----------------------------------"
+                  jq . warp-data.json || true
 
-      - name: Fetch WARP registration data
-        id: fetch-warp
-        run: |
-          chmod +x ./warp-reg.sh
-          ./warp-reg.sh  > warp-data.json
-          echo "WARP data fetched."
+            - name: Update bridge-warp.json with WARP data
+              run: |
+                  # Extract relevant values from warp-data.json
+                  PRIVATE_KEY=$(jq -r '.private_key' warp-data.json)
+                  PUBLIC_KEY=$(jq -r '.public_key' warp-data.json)
+                  V4_ADDRESS=$(jq -r '.v4' warp-data.json)
+                  ENDPOINT=$(jq -r '.endpoint.v4' warp-data.json)
+                  RESERVED_DEC=$(jq -r '.reserved_dec' warp-data.json)
 
+                  jq --arg privateKey "$PRIVATE_KEY" \
+                     --arg publicKey "$PUBLIC_KEY" \
+                     --arg v4 "$V4_ADDRESS" \
+                     --arg endpoint "$ENDPOINT" \
+                     --argjson reserved "$RESERVED_DEC" \
+                     '
+                     # Replace secretKey in WireGuard settings
+                     (.outbounds[] | select(.protocol == "wireguard") | .settings.secretKey) |= $privateKey |
 
-      - name: Update bridge-warp.json with WARP data
-        run: |
-          # Extract relevant values from warp-data.json
-          PRIVATE_KEY=$(jq -r '.private_key' warp-data.json)
-          PUBLIC_KEY=$(jq -r '.public_key' warp-data.json)
-          V4_ADDRESS=$(jq -r '.v4' warp-data.json)
-          ENDPOINT=$(jq -r '.endpoint.v4' warp-data.json)
-          RESERVED_DEC=$(jq -r '.reserved_dec' warp-data.json)
+                     # Replace publicKey in peers section
+                     (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].publicKey) |= $publicKey |
 
-          jq --arg privateKey "$PRIVATE_KEY" \
-             --arg publicKey "$PUBLIC_KEY" \
-             --arg v4 "$V4_ADDRESS" \
-             --arg endpoint "$ENDPOINT" \
-             --argjson reserved "$RESERVED_DEC" \
-             '
-             # Replace secretKey in WireGuard settings
-             (.outbounds[] | select(.protocol == "wireguard") | .settings.secretKey) |= $privateKey |
-
-             # Replace publicKey in peers section
-             (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].publicKey) |= $publicKey |
-
-             # Replace the address array with only the IPv4 address
-             (.outbounds[] | select(.protocol == "wireguard") | .settings.address) = [$v4 + "/32"] |
-
-
-             # Replace endpoint in peers section
-             (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].endpoint) |= ($endpoint + ":2408") |
-
-             # Ensure "reserved" block exists after "peers", add it if missing
-             (.outbounds[] | select(.protocol == "wireguard") | .settings) |=
-               if has("reserved") then . else . + {reserved: $reserved} end
-             ' bridge-warp.json > tmp.json && mv tmp.json bridge-warp.json
-             sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "'${{ steps.user.outputs.ip }}'",/' ./bridge-warp.json
+                     # Replace the address array with only the IPv4 address
+                     (.outbounds[] | select(.protocol == "wireguard") | .settings.address) = [$v4 + "/32"] |
 
 
-      - name: Run Xray
-        if: ${{ steps.check.outputs.run }}
-        timeout-minutes: 1000
-        run: >
-          sudo ./xray run -c bridge-warp.json
-          && sleep 365d || true
+                     # Replace endpoint in peers section
+                     (.outbounds[] | select(.protocol == "wireguard") | .settings.peers[].endpoint) |= ($endpoint + ":2408") |
+
+                     # Ensure "reserved" block exists after "peers", add it if missing
+                     (.outbounds[] | select(.protocol == "wireguard") | .settings) |=
+                       if has("reserved") then . else . + {reserved: $reserved} end
+                     ' bridge-warp.json > tmp.json && mv tmp.json bridge-warp.json
+                     sed -i '/"vnext": \[/,/\]/s/"address": "[^"]*",/"address": "'${{ steps.user.outputs.ip }}'",/' ./bridge-warp.json
+
+            - name: Run Xray
+              if: ${{ steps.check.outputs.run }}
+              timeout-minutes: 1000
+              run: >
+                  sudo ./xray run -c bridge-warp.json
+                  && sleep 365d || true
